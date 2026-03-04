@@ -13,7 +13,7 @@ Before writing a new component, hook, or utility, check what already exists:
 
 | Need | Check First |
 |------|------------|
-| Custom hooks | `theme/helper/hooks.jsx` — `useThemeConfig`, `useAddress`, `usePolling`, `useIntersectionObserver`, etc. |
+| Custom hooks | `theme/helper/hooks/` — `useThemeConfig`, `useAddress`, `usePolling`, `useWishlist`, `useWindowWidth`, etc. |
 | Utilities | `theme/helper/utils.js` — image sizing, sanitization, color conversion, formatting |
 | UI primitives | `theme/components/` — carousel, modal, loader, form fields, stars/rating, breadcrumb, etc. |
 | Data resolvers | `theme/helper/lib.js` — `globalDataResolver`, `pageDataResolver` |

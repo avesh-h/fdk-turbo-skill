@@ -11,13 +11,13 @@ Any design decision a merchant should be able to change (color, font, layout tog
 
 ## Where Configs Live
 
-- **`settings_schema.json`** (root) — global theme-level settings (fonts, header layout, cart options, product card styles)
+- **`theme/config/settings_schema.json`** — global theme-level settings (fonts, header layout, cart options, product card styles)
 - **Section `props` schema** — section-level settings declared inline alongside each section component
 - **`config.json`** — default font configuration (Poppins)
 
 ## Reading Theme Config in Components
 
-Always use the `useThemeConfig()` hook from `theme/helper/hooks.jsx`. Never access raw config objects directly.
+Always use the `useThemeConfig()` hook from `theme/helper/hooks/`. Never access raw config objects directly.
 
 **Incorrect:**
 
@@ -26,7 +26,7 @@ Always use the `useThemeConfig()` hook from `theme/helper/hooks.jsx`. Never acce
 const primaryColor = window.__theme_config__.colors.primary;
 
 // Don't import config JSON and read it statically
-import config from "../../settings_schema.json";
+import config from "../config/settings_schema.json";
 ```
 
 **Correct:**

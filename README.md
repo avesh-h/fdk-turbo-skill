@@ -32,7 +32,7 @@ Restart your agent after installing.
 ## Repo structure
 
 - **SKILL.md** — Main skill definition (metadata + instructions). Required by all skill-compatible tools.
-- **rules/** — Topic-specific rule files referenced from `SKILL.md`.
+- **references/** — Topic-specific rule files referenced from `SKILL.md`.
 
 ## License
 

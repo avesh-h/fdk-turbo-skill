@@ -80,7 +80,7 @@ useEffect(() => {
 
 ### 4. Don't Duplicate Events Already in Existing Hooks
 
-The theme's existing hooks in `theme/helper/hooks.jsx` and page components already fire the standard events. Before adding a new event call, read the existing hook/page implementation to confirm it isn't already tracked.
+The theme's existing hooks in `theme/helper/hooks/` and page components already fire the standard events. Before adding a new event call, read the existing hook/page implementation to confirm it isn't already tracked.
 
 ```jsx
 // Before adding this, check if useProductDetails hook already fires it

@@ -7,7 +7,7 @@ tags: platform, fdk, cart, checkout, payments, auth, oms
 
 ## Platform Boundaries — Don't Reimplement Built-in Modules
 
-The Fynd platform provides complete, production-tested implementations of every core e-commerce module. These are wired through FPI store actions and hooks in `theme/helper/hooks.jsx`. Do not reimplement, replace, or bypass them.
+The Fynd platform provides complete, production-tested implementations of every core e-commerce module. These are wired through FPI store actions and hooks in `theme/helper/hooks/`. Do not reimplement, replace, or bypass them.
 
 ## Modules Already Implemented — Do Not Recreate
 
@@ -76,7 +76,7 @@ function CheckoutWithGiftNote() {
 
 ## Read Before Modifying
 
-Before modifying any hook in `theme/helper/hooks.jsx` or any section in `theme/sections/`, read the full file. These hooks manage:
+Before modifying any hook in `theme/helper/hooks/` or any section in `theme/sections/`, read the full file. These hooks manage:
 - Analytics event dispatch
 - Platform state synchronization
 - Error handling with platform-specific error codes
@@ -88,6 +88,6 @@ Partial rewrites break these invariants.
 
 If platform actions don't cover your use case:
 1. Check `fpi` client API for less-obvious action methods
-2. Check if a `theme/helper/hooks.jsx` hook already handles it
+2. Check if a `theme/helper/hooks/` hook already handles it
 3. Check existing section implementations in `theme/sections/`
 4. Only then add new logic — and add it *alongside* existing platform calls, not replacing them
