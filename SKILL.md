@@ -25,13 +25,14 @@ This is **not a standalone React app**. It runs inside the Fynd platform runtime
 - Theme configuration surfaced in the Fynd Admin Panel via `settings_schema.json`
 - Asset delivery and deployment via FDK-CLI (`fdk theme serve`, `fdk theme sync`)
 
-**Three content layers:**
+**Four content layers:**
 
 | Layer | Path | Role |
 |-------|------|------|
-| Pages | `theme/pages/` | Full route-level components (47 pages) |
-| Sections | `theme/sections/` | Reusable content blocks (60 sections); primary customization units merchants drag-and-drop |
-| Components | `theme/components/` | Primitive UI components (49) used by pages and sections |
+| Pages | `theme/pages/` | Full route-level components (45 pages) |
+| Sections | `theme/sections/` | Reusable content blocks (58 sections); primary customization units merchants drag-and-drop |
+| Components | `theme/components/` | Primitive UI components (47) used by pages and sections |
+| Page Layouts | `theme/page-layouts/` | Heavy logic hooks per feature area (checkout, cart, PDP, auth, orders, etc.) — do not overwrite |
 
 ---
 
@@ -39,6 +40,7 @@ This is **not a standalone React app**. It runs inside the Fynd platform runtime
 
 | Priority | Category | Impact |
 |----------|----------|--------|
+| 0 | Never Overwrite Existing Logic Hooks | CRITICAL |
 | 1 | SSR Compatibility | CRITICAL |
 | 2 | FPI Data Fetching | CRITICAL |
 | 3 | Platform Boundaries | CRITICAL |
@@ -50,6 +52,70 @@ This is **not a standalone React app**. It runs inside the Fynd platform runtime
 | 9 | Component Design | MEDIUM |
 | 10 | Theme Configuration | MEDIUM |
 | 11 | Bundle & Performance | MEDIUM |
+
+---
+
+## 0. Never Overwrite Existing Logic Hooks (CRITICAL)
+
+> **This is the single most important rule for this codebase.**
+
+The theme contains complete, production-tested implementations of every major e-commerce operation — payments, authentication, cart, address management, checkout, OMS, wishlist, and more. These live across two directories:
+
+**`theme/helper/hooks/`** — FPI-integrated hooks (20+ files):
+
+| Hook file | What it owns |
+|-----------|-------------|
+| `useAddress.jsx` | Fetch, add, update, remove addresses; pincode locality lookup |
+| `useThemeConfig.jsx` | Global and page-level theme config access |
+| `useWishlist.jsx` | Wishlist add/remove/toggle |
+| `usePolling.jsx` | Background polling logic |
+| `useLocalStorage.jsx` | SSR-safe localStorage wrapper |
+| `useWindowWidth.jsx` | Responsive breakpoint detection |
+| `hooks.jsx` | Barrel export — `useSnackbar`, and other shared utilities |
+| *(and more)* | auth utilities, delivery promise, form schema, etc. |
+
+**`theme/page-layouts/`** — Heavy feature-level hooks (~30 feature areas):
+
+| Path | What it owns |
+|------|-------------|
+| `single-checkout/payment/usePayment.jsx` | Full payment flow: CARD, UPI, QR, NB, WL, COD, EMI, Pay Later, credit note, partial payment, payment links |
+| `cart/useCart.jsx` | Cart CRUD, coupon logic, cart breakup |
+| `pdp/` | Product detail, size selection, pincode check |
+| `auth/` | Login, register, OTP, social auth |
+| `orders/` | Order list, order detail, return/cancel/refund |
+| `plp/` | Product listing, filters, pagination |
+| `address/` | Address page logic |
+| *(and more)* | Every page area has its own dedicated hook file |
+
+### The Rule
+
+**NEVER overwrite, replace, or rewrite any of these hook files.** They contain:
+- Hundreds of edge cases built from real production bugs
+- Platform state sync contracts that break silently when disrupted
+- Integrated analytics dispatch tied to exact user action timing
+- SSR-safe patterns that took significant effort to stabilize
+
+**What you CAN do:**
+- Add new exported functions to an existing hook file (append only)
+- Add new state variables for new UI behaviour
+- Call existing hook functions from new components
+- Create a new hook file in `theme/helper/hooks/` for genuinely new functionality
+
+**What you must NEVER do:**
+```jsx
+// NEVER — replaces the entire production payment flow
+const usePayment = (fpi) => {
+  // rewriting from scratch...
+};
+export default usePayment;
+
+// NEVER — replaces production address logic
+export const useAddress = ({ fpi }) => {
+  // rewriting from scratch...
+};
+```
+
+**Before touching any hook file: read the entire file first.** If a task requires modifying an existing hook, explain precisely which lines change and why, and confirm it does not remove any existing exported function or state.
 
 ---
 
@@ -215,7 +281,9 @@ async function addToCart(product, size) {
 }
 ```
 
-**Before modifying any hook in `theme/helper/hooks.jsx` or section in `theme/sections/`, read the full file.** These hooks manage analytics dispatch, platform state sync, error handling, and production edge cases. Partial rewrites break these invariants.
+**Before modifying any file in `theme/helper/hooks/`, `theme/page-layouts/`, or `theme/sections/`, read the entire file first.** These files manage analytics dispatch, platform state sync, error handling, SSR safety, and production edge cases accumulated over many releases. Partial rewrites silently break these invariants.
+
+**The golden rule: extend, don't replace.** Add new functions and state. Never remove or rewrite existing exports.
 
 > Deep dive: `fynd-theme/rules/platform-boundaries.md`
 
@@ -313,9 +381,10 @@ Always resize images through Pixelbin via `transformImage`. Never use raw CDN UR
 ```jsx
 import { transformImage } from "../../helper/utils";
 
+// Actual signature: transformImage(url, width)
 // Size to actual rendered dimensions
 <img
-  src={transformImage({ src: product.media[0].url, width: 400, height: 400, format: "webp" })}
+  src={transformImage(product.media[0].url, 400)}
   width={400}
   height={400}
   loading="lazy"
@@ -327,7 +396,7 @@ import { transformImage } from "../../helper/utils";
 
 ```jsx
 <img
-  src={transformImage({ src, width: 800, format: "webp" })}
+  src={transformImage(src, 800)}
   loading="eager"
   fetchpriority="high"
   alt={alt}
@@ -418,8 +487,9 @@ Relevant Vercel rules: `rerender-memo.md`, `rerender-memo-with-default-value.md`
 
 | Need | Where to look |
 |------|--------------|
-| Custom hooks | `theme/helper/hooks.jsx` — `useThemeConfig`, `useAddress`, `usePolling`, etc. |
-| Utilities | `theme/helper/utils.js` — image sizing, `sanitizeHTML`, color utils |
+| Custom hooks | `theme/helper/hooks/` directory — `useThemeConfig`, `useAddress`, `usePolling`, `useWishlist`, etc. (20+ files) |
+| Feature logic hooks | `theme/page-layouts/` — `usePayment`, `useCart`, PDP/auth/orders logic |
+| Utilities | `theme/helper/utils.js` — `transformImage(url, width)`, `sanitizeHTMLTag`, color utils |
 | UI primitives | `theme/components/` — carousel, modal, loader, form fields, rating, breadcrumb |
 | Data resolvers | `theme/helper/lib.js` |
 
@@ -430,11 +500,11 @@ Relevant Vercel rules: `rerender-memo.md`, `rerender-memo-with-default-value.md`
 **Sanitize all platform HTML** — product descriptions, CMS content, banners:
 
 ```jsx
-import { sanitizeHTML } from "../../helper/utils";
+import { sanitizeHTMLTag } from "../../helper/utils";
 import parse from "html-react-parser";
 
-// With DOMPurify sanitization (never skip this)
-<div>{parse(sanitizeHTML(product.description))}</div>
+// With sanitization (never skip this)
+<div>{parse(sanitizeHTMLTag(product.description))}</div>
 
 // Never:
 <div dangerouslySetInnerHTML={{ __html: product.description }} />
@@ -541,9 +611,11 @@ Relevant Vercel rules: `bundle-barrel-imports.md`, `bundle-dynamic-imports.md`, 
 | File | Purpose |
 |------|---------|
 | `theme/index.jsx` | Entry point — initializes FPI, exports all page/section/component references |
-| `theme/global-provider.jsx` | ThemeProvider — wraps app, SEO meta, Copilot.live init |
-| `theme/helper/utils.js` | `transformImage`, `sanitizeHTML`, color utils (33KB) |
-| `theme/helper/hooks.jsx` | `useThemeConfig`, `useAddress`, `usePolling`, all custom hooks |
+| `theme/providers/global-provider.jsx` | ThemeProvider — wraps app, SEO meta, Copilot.live init |
+| `theme/helper/utils.js` | `transformImage(url, width)`, `sanitizeHTMLTag`, color utils |
+| `theme/helper/hooks/` | Directory of 20+ custom hooks: `useThemeConfig`, `useAddress`, `usePolling`, `useWishlist`, etc. |
+| `theme/helper/hooks/index.jsx` | Barrel export for all hooks in the directory |
+| `theme/page-layouts/` | Feature-level logic hooks: `usePayment`, `useCart`, PDP, auth, orders (do not overwrite) |
 | `theme/helper/fpi-swr-wrapper.js` | SWR caching layer for FPI GraphQL responses |
 | `theme/helper/lib.js` | `globalDataResolver`, `pageDataResolver` |
 | `theme/helper/auth-guard.js` | Auth guard utilities |
